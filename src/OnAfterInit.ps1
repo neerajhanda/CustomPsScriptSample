@@ -128,6 +128,49 @@ if (Test-Path $vsixFilePath) {
         } else {
             Write-Host "VSIX package installation failed. Exit code: $LASTEXITCODE."
         }
+
+        # Clean visual studio cache to prevent inconsistent state
+        # https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/general-troubleshoot.html#general-troubleshoot-component-initilization
+        # Close all instances of Visual Studio
+        Get-Process -Name "devenv" -ErrorAction SilentlyContinue | Stop-Process -Force
+        
+        # Navigate to the Visual Studio folder
+        $vsFolder = Join-Path -Path $env:LOCALAPPDATA -ChildPath "Microsoft\VisualStudio"
+        Set-Location -Path $vsFolder
+        
+        # Find the folder containing the Visual Studio 2022 installation
+        $vsInstallationFolder = Get-ChildItem -Directory -Filter "17.0_*" | Select-Object -First 1
+        if ($vsInstallationFolder -eq $null) {
+            Write-Error "Visual Studio 2022 installation folder not found."
+            Exit
+        }
+        
+        # Navigate to the Visual Studio 2022 installation folder
+        Set-Location -Path $vsInstallationFolder.FullName
+        
+        # Backup and remove privateregistry.bin
+        $privateRegistryFile = "privateregistry.bin"
+        if (Test-Path -Path $privateRegistryFile) {
+            $backupFolder = Join-Path -Path $env:USERPROFILE -ChildPath "VisualStudioBackup"
+            New-Item -ItemType Directory -Path $backupFolder -Force | Out-Null
+            $backupFile = Join-Path -Path $backupFolder -ChildPath $privateRegistryFile
+            Move-Item -Path $privateRegistryFile -Destination $backupFile -Force
+            Remove-Item -Path $privateRegistryFile -Force
+        }
+        
+        # Navigate to the Extensions subfolder
+        $extensionsFolder = Join-Path -Path $vsInstallationFolder.FullName -ChildPath "Extensions"
+        Set-Location -Path $extensionsFolder
+        
+        # Backup and remove ExtensionMetadata.mpack
+        $extensionMetadataFile = "ExtensionMetadata.mpack"
+        if (Test-Path -Path $extensionMetadataFile) {
+            $backupFolder = Join-Path -Path $env:USERPROFILE -ChildPath "VisualStudioBackup"
+            New-Item -ItemType Directory -Path $backupFolder -Force | Out-Null
+            $backupFile = Join-Path -Path $backupFolder -ChildPath $extensionMetadataFile
+            Move-Item -Path $extensionMetadataFile -Destination $backupFile -Force
+            Remove-Item -Path $extensionMetadataFile -Force
+        }
        
     } else {
         Write-Host "VSIXInstaller.exe not found. Please verify the Visual Studio installation path."
