@@ -108,7 +108,7 @@ if (Test-Path $vsixFilePath) {
                 Write-Host "---"
             
                 # Run VSIXInstaller.exe with the "Id" as an argument
-                $argumentList = @("/uninstall:$id","/q")
+               $argumentList = @("/uninstall:$id","/q","/f","/sp","/log:vsix.log")
                 Start-Process -FilePath $vsixInstallerPath -ArgumentList $argumentList -Wait -NoNewWindow
                  if ($LASTEXITCODE -eq 0) {
                         Write-Host "VSIX package uninstalled successfully."
@@ -118,7 +118,7 @@ if (Test-Path $vsixFilePath) {
                 }
         }
          # Run silent install of the VSIX package using Start-Process with logging
-        $arguments = @("$vsixFilePath", "/q")
+        $arguments = @("$vsixFilePath", "/q","/f","/sp","/log:vsix.log")
 
         Start-Process -FilePath $vsixInstallerPath -ArgumentList $arguments -Wait -NoNewWindow
 
