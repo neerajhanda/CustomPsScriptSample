@@ -61,7 +61,7 @@ $webConfigXml.Save($webConfigPath)
 
 # Bucket and folder path in S3
 $bucketName = "windows-dev-env-ec2"
-$folderPath = "artifacts/"
+$folderPath = "artifacts"
 
 # Get the directory where the PowerShell script file is located
 $localPath = Join-Path $PSScriptRoot "s3-artifacts"
@@ -73,12 +73,13 @@ if (-not (Test-Path $localPath)) {
 } else {
     Write-Host "Local directory already exists: $localPath"
 }
-
-# Download files from S3
-aws s3 cp s3://$bucketName/$folderPath $localPath --recursive
-
 # Silent installation of the VSIX package
 $vsixFilePath = Join-Path $localPath "AWSToolkitPackage.vsix"
+
+# Download files from S3
+Invoke-RestMethod -uri https://$bucketName.s3.us-west-2.amazonaws.com/$folderPath/AWSToolkitPackage.vsix -OutFile $vsixFilePath
+
+
 
 if (Test-Path $vsixFilePath) {
     # Path to Visual Studio 2022 VSIXInstaller.exe
@@ -87,10 +88,10 @@ if (Test-Path $vsixFilePath) {
     # Check if VSIXInstaller.exe exists (adjust path if using a different version of Visual Studio)
     if (Test-Path $vsixInstallerPath) {
         # Uninstall existing extensions first
-        $folderPath = "C:\Users\Administrator\AppData\Local\Microsoft\VisualStudio\17.0_7653a119\Extensions"
-        if (Test-Path $folderPath) {
+        $extensionFolderPath = "C:\Users\Administrator\AppData\Local\Microsoft\VisualStudio\17.0_7653a119\Extensions"
+        if (Test-Path $extensionFolderPath) {
             # Search for files named "extension.vsixmanifest" recursively
-            $files = Get-ChildItem -Path $folderPath -Filter "extension.vsixmanifest" -Recurse
+            $files = Get-ChildItem -Path $extensionFolderPath -Filter "extension.vsixmanifest" -Recurse
             foreach ($file in $files) {
                 # Read the content of the file
                 $content = Get-Content -Path $file.FullName -Raw
