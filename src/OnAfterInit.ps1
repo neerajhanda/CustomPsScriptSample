@@ -86,7 +86,37 @@ if (Test-Path $vsixFilePath) {
     
     # Check if VSIXInstaller.exe exists (adjust path if using a different version of Visual Studio)
     if (Test-Path $vsixInstallerPath) {
-        # Run silent install of the VSIX package using Start-Process with logging
+        # Uninstall existing extensions first
+        $folderPath = "C:\Users\Administrator\AppData\Local\Microsoft\VisualStudio\17.0_7653a119\Extensions"
+        if (Test-Path $folderPath) {
+            # Search for files named "extension.vsixmanifest" recursively
+            $files = Get-ChildItem -Path $folderPath -Filter "extension.vsixmanifest" -Recurse
+            foreach ($file in $files) {
+                # Read the content of the file
+                $content = Get-Content -Path $file.FullName -Raw
+            
+                # Parse the XML content
+                $xml = [xml]$content
+            
+                # Extract the value of the "Id" attribute of the "Identity" tag
+                $id = $xml.PackageManifest.Metadata.Identity.Id
+            
+                # Print the "Id" value
+                Write-Host "File: $($file.FullName)"
+                Write-Host "Id: $id"
+                Write-Host "---"
+            
+                # Run VSIXInstaller.exe with the "Id" as an argument
+                $argumentList = @("/uninstall:$id","/q")
+                Start-Process -FilePath $vsixInstallerPath -ArgumentList $argumentList -Wait -NoNewWindow
+                 if ($LASTEXITCODE -eq 0) {
+                        Write-Host "VSIX package uninstalled successfully."
+                    } else {
+                        Write-Host "VSIX package uninstall failed. Exit code: $LASTEXITCODE."
+                    }
+                }
+        }
+         # Run silent install of the VSIX package using Start-Process with logging
         $arguments = @("$vsixFilePath", "/q")
 
         Start-Process -FilePath $vsixInstallerPath -ArgumentList $arguments -Wait -NoNewWindow
@@ -97,6 +127,7 @@ if (Test-Path $vsixFilePath) {
         } else {
             Write-Host "VSIX package installation failed. Exit code: $LASTEXITCODE."
         }
+       
     } else {
         Write-Host "VSIXInstaller.exe not found. Please verify the Visual Studio installation path."
     }
